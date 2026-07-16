@@ -1,146 +1,146 @@
 # Forge System — Architecture Plan
 
-## The 12-Factory Architecture
+## Dual-Path Architecture
 
-Each forge is a standalone project with its own specialized agents following the boss→worker→checker pattern (Nate B Jones, T2/7.5). One agent per item. No agent does two things.
-
-```
-                         ┌──────────────────┐
-                         │   SPARK FORGE    │ ◀── ENTRY POINT A
-                         │  Ideas, concepts │
-                         │  what-ifs, hooks │
-                         └────────┬─────────┘
-                                  │
-           ┌──────────────────────┼──────────────────────┐
-           │                      │                      │
-    ┌──────┴──────┐       ┌──────┴──────┐       ┌──────┴──────┐
-    │   GENRE     │◀──B   │   WORLD     │◀──C   │ CHARACTER   │◀──D
-    │   FORGE     │       │   FORGE     │       │   FORGE     │
-    │ Container   │       │ Setting     │       │   People    │
-    └──────┬──────┘       └──────┬──────┘       └──────┬──────┘
-           │                      │                      │
-           └──────────────────────┼──────────────────────┘
-                                  │
-                         ┌────────┴─────────┐
-                         │  OUTLINE FORGE   │
-                         │  Plot structure  │
-                         └────────┬─────────┘
-                                  │
-                         ┌────────┴─────────┐
-                         │   STORY FORGE    │
-                         │  Chapter gen     │
-                         │  27 gates        │
-                         │  105 techniques  │
-                         └────────┬─────────┘
-                                  │
-    ┌─────────────────────────────┼─────────────────────────────┐
-    │                             │                             │
-┌───┴───┐                   ┌────┴────┐                   ┌────┴────┐
-│ VOICE │                   │ QUALITY │                   │  COVER  │
-│ FORGE │                   │  FORGE  │                   │  FORGE  │
-│Finger-│                   │27 gates │                   │ Designs │
-│prints │                   │standalone│                  │         │
-└───────┘                   └─────────┘                   └─────────┘
-                                  │
-           ┌──────────────────────┼──────────────────────┐
-           │                      │                      │
-    ┌──────┴──────┐       ┌──────┴──────┐       ┌──────┴──────┐
-    │   AUDIO     │       │   MERCH     │       │ MARKETING   │
-    │   FORGE     │       │   FORGE     │       │   FORGE     │
-    │ Audiobooks  │       │ Products    │       │ Promotion   │
-    └─────────────┘       └─────────────┘       └─────────────┘
-```
-
-## Entry Points
-
-The creative spark can enter from any of four entry points. The system does not assume a linear path:
-
-| Entry | Starts With | Example |
-|-------|------------|---------|
-| **A — Spark** | An idea, hook, what-if | "What if death was a bureaucracy?" |
-| **B — Genre** | A genre container | "I want to write cozy fantasy" |
-| **C — World** | A setting, place | "A city built on a sleeping god" |
-| **D — Character** | A person, voice | "A tea shop owner who can see death coming" |
-
-Any entry point can feed into any other. The system handles this with a shared data format.
-
-## Forge Catalog
-
-| # | Forge | Status | Purpose | Entry Point |
-|---|-------|--------|---------|-------------|
-| 1 | **Spark** | 🔨 Building | Ideas, hooks, concepts, what-ifs | A |
-| 2 | **Genre** | 📋 Planned | Genre contracts, research, tropes | B |
-| 3 | **World** | 📋 Planned | Settings, magic systems, geography | C |
-| 4 | **Character** | 📋 Planned | People, arcs, relationships, voice | D |
-| 5 | **Outline** | 📋 Planned | Plot structure, pacing, beat sheets | — |
-| 6 | **Story** | ✅ Exists | Chapter generation, 27 gates, 105 techniques | — |
-| 7 | **Voice** | 📋 Planned | Voice fingerprinting, style extraction | — |
-| 8 | **Quality** | 📋 Planned | Standalone 27-gate QA pipeline | — |
-| 9 | **Cover** | 📋 Planned | Cover design, image generation | — |
-| 10 | **Audio** | 📋 Planned | Audiobook production, TTS | — |
-| 11 | **Merch** | ✅ Exists | Product creation, storefront sync | — |
-| 12 | **Marketing** | 🔨 Building | Promotion, ARCs, signal optimization | — |
-
-## Shared Data Format
-
-Every forge reads and writes a common format. This is how they compose:
-
-```json
-{
-  "forge_id": "spark-001",
-  "type": "concept",
-  "title": "The Bureaucratic Wizard's Floating Component Shop",
-  "hook": "What if a wizard ran a floating component shop and the bureaucracy was the real villain?",
-  "genre_hint": "cozy-fantasy",
-  "world_hint": "A floating marketplace above a forgotten city",
-  "character_hint": "A wizard who'd rather file paperwork than cast spells",
-  "tone": "warm, humorous, slightly absurd",
-  "status": "spark",
-  "feeds_into": ["genre-forge", "world-forge", "character-forge"]
-}
-```
-
-## Agent Pattern (One Agent Per Item)
-
-Every forge follows the same pattern:
+The system is designed for two paths from day one:
 
 ```
-Boss Agent (DeepSeek V4 Pro)
-    │  Writes specs, designs, reviews, rules on disputes. Never creates.
-    │  Gets V4 Pro for deeper reasoning on complex design tasks.
-    │
-    ├──→ Worker Agent (DeepSeek V4 Flash)
-    │       Creates ONE item (one concept, one world, one character)
-    │       V4 Flash is the workhorse — cheap, fast, focused.
-    │
-    ├──→ Worker Agent (DeepSeek V4 Flash)
-    │       Creates another item
-    │
-    ├──→ Worker Agent (DeepSeek V4 Flash)
-    │       Creates another item
-    │
-    └──→ Checker Agent (DeepSeek V4 Flash)
-            Verifies independently. Rejects unless proven correct.
-            Escalates disputes to Boss.
+PATH 1: CLI AGENTIC FLOW (Andre's company — NOW)
+  Terminal → forge_runner.py → 12 forges → book published
+  Single user, local files, API keys in ~/.bashrc
+
+PATH 2: SaaS PLATFORM (external users — NEXT)
+  Web UI → REST API → Job Queue → 12 forges → book published
+  Multi-tenant, Supabase, Stripe billing, user API keys
 ```
 
-**Rules:**
-- One agent = one item. Never two items per agent.
-- Workers execute, never design.
-- Boss designs, never executes.
-- Checkers verify independently of worker's self-report.
-- Every item gets its own verification before being accepted.
-- **Model strategy:** DeepSeek V4 Flash via OpenRouter = default workhorse. V4 Pro via OpenRouter = boss tasks. Fallback: DeepSeek Direct API when rate-limited (auto-switch via model-fallback extension).
+Both paths use the same forges underneath. The only difference is how they're invoked.
 
-## Cost Structure
+## SaaS Architecture
 
-| Forge | Items per Run | Workers | Total Tokens | Est. Cost |
-|-------|--------------|---------|-------------|-----------| 
-| Spark | 10 concepts | 10 workers + 1 checker | ~50K | ~$0.15 |
-| Genre | 1 contract | 1 worker + 1 checker | ~15K | ~$0.05 |
-| World | 5 elements | 5 workers + 1 checker | ~30K | ~$0.10 |
-| Character | 5 characters | 5 workers + 1 checker | ~30K | ~$0.10 |
-| Story | 18 chapters | 18 workers + 18 checkers | ~500K | ~$1.50 |
-| Quality | 1 manuscript | 10 gates (LLM) | ~100K | ~$0.30 |
+```
+                         ┌──────────────────────┐
+                         │      WEB DASHBOARD    │
+                         │  Next.js + HeroUI    │
+                         │  User projects,      │
+                         │  book progress,       │
+                         │  cost tracking        │
+                         └──────────┬───────────┘
+                                    │ REST API
+                         ┌──────────┴───────────┐
+                         │      API GATEWAY      │
+                         │  FastAPI / Hono       │
+                         │  Auth (Supabase)      │
+                         │  Rate limiting         │
+                         │  API key validation   │
+                         └──────────┬───────────┘
+                                    │
+                         ┌──────────┴───────────┐
+                         │     JOB ORCHESTRATOR  │
+                         │  Queue (BullMQ/Redis) │
+                         │  forge_runner.py      │
+                         │  Per-user cost track  │
+                         └──────────┬───────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+        ┌─────┴─────┐         ┌─────┴─────┐         ┌─────┴─────┐
+        │  SPARK    │         │  GENRE    │         │   WORLD   │
+        │  FORGE    │         │  FORGE    │         │   FORGE   │
+        └───────────┘         └───────────┘         └───────────┘
+              │                     │                     │
+              └─────────────────────┼─────────────────────┘
+                                    │
+                         [remaining forges...]
+                                    │
+                         ┌──────────┴───────────┐
+                         │    SUPABASE (DB)      │
+                         │  Postgres + Auth       │
+                         │  User data, books,     │
+                         │  forges, billing       │
+                         └──────────────────────┘
+```
 
-**Full book from spark to publish: ~$2-3** (all DeepSeek, no external models)
+## Multi-Tenant Data Model
+
+Each user has their own namespace. All forge outputs are scoped to a user + project.
+
+```sql
+-- Core tables
+users (id, email, stripe_customer_id, created_at)
+projects (id, user_id, title, genre, status, created_at)
+forge_runs (id, project_id, forge_name, status, cost, started_at, finished_at)
+forge_outputs (id, forge_run_id, output_type, data JSONB, created_at)
+api_keys (id, user_id, provider, key_encrypted, created_at)
+
+-- Billing
+subscriptions (id, user_id, tier, status, current_period_end)
+usage_events (id, user_id, forge_name, tokens_used, cost, created_at)
+```
+
+## Phased Roadmap
+
+### Phase 1: CLI Agentic Flow ✅ IN PROGRESS
+- ✅ 11 forges built with scripts
+- ✅ forge_runner.py orchestrator
+- ✅ One-agent-per-item pattern
+- ✅ OpenRouter + Direct fallback
+- 📋 End-to-end test
+- 📋 Extract quality-forge as standalone
+
+### Phase 2: Internal SaaS (Andre's company)
+- Database migration (local files → Supabase)
+- REST API layer (FastAPI)
+- Web dashboard (Next.js + HeroUI)
+- Job queue (BullMQ + Redis)
+- Cost tracking per project
+- Discord notifications for pipeline events
+
+### Phase 3: Multi-Tenant SaaS (external users)
+- User authentication (Supabase Auth)
+- Stripe billing integration
+- Per-user API key management
+- Rate limiting per tier
+- Usage-based pricing
+- Admin dashboard
+
+### Phase 4: Marketplace
+- Public forge templates
+- Community genre contracts
+- Voice fingerprint marketplace
+- Cover design marketplace
+- Publishing service marketplace
+
+## Cost Structure (SaaS)
+
+| Tier | Books/Month | Forges | Price |
+|------|------------|--------|-------|
+| **Free** | 1 | Spark only (10 concepts) | $0 |
+| **Creator** | 5 | Creative chain | $29/mo |
+| **Author** | 20 | Full pipeline | $79/mo |
+| **Publisher** | Unlimited | Full pipeline + priority | $199/mo |
+
+Plus usage-based: $0.50 per 100K tokens over included quota.
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Next.js, HeroUI (already in pi skills), Tailwind CSS |
+| **API** | FastAPI (Python, matches forge language) or Hono (TypeScript) |
+| **Database** | Supabase (Postgres + Auth + Realtime) |
+| **Queue** | BullMQ (Redis) — job queue for forge execution |
+| **Auth** | Supabase Auth (email/password + OAuth) |
+| **Billing** | Stripe (already in pi skills) |
+| **Hosting** | DigitalOcean droplet + Vercel (frontend) |
+| **Monitoring** | Discord webhooks (already in pi skills) |
+
+## CLI → SaaS Migration Path
+
+Every forge already outputs standardized JSON. The only changes needed:
+1. Replace local `data/*.json` with Supabase tables
+2. Replace `subprocess.run()` with BullMQ job submission
+3. Add API key validation middleware
+4. Add user context to every forge run
+
+The forges themselves don't change — they're already isolated, one-agent-per-item, and produce structured output.
